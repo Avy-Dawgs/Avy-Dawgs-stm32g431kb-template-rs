@@ -1,0 +1,27 @@
+[package]
+name = "stm32g431kb_template"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cortex-m-rt = "0.7"
+stm32g4xx-hal = {version = "0.0.1", features = ["stm32g431", "defmt","log-rtt"]}
+panic-halt = "0.2.0"
+defmt = "0.3" 
+defmt-rtt = "0.4"
+
+# [dependencies.defmt]
+# version = "0.3"
+# features = ["defmt-default"]
+
+[profile.dev] 
+codegen-units = 1
+debug = true 
+incremental = false 
+lto = false 
+
+[profile.release] 
+debug = false 
+codegen-units = 1 
+incremental = false 
+lto = true
