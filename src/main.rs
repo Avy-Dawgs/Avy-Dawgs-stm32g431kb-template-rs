@@ -2,7 +2,7 @@
 #![no_std]
 
 use stm32g4xx_hal::{
-    self as hal, cortex_m, gpio::{self, *}, prelude::OutputPin, rcc::{self, RccExt}, stm32,
+    self as hal, cortex_m, gpio::{self, *}, pac::GPIOB, prelude::*, pwr, rcc::{self, RccExt}, stm32
 };
 
 use cortex_m_rt::entry;
@@ -20,23 +20,26 @@ fn main() -> !
     let cp = cortex_m::Peripherals::take().unwrap();    // core peripherals
 
     // configure clocks
-    let mut rcc = config_clks(dp.RCC);
+    let mut rcc = config_clks(dp.RCC, dp.PWR);
+    let mut delay = cp.SYST.delay(&rcc.clocks);
 
     // configure led
     let gpiob = dp.GPIOB.split(&mut rcc);
     let mut led = gpiob.pb8.into_push_pull_output();
 
-    info!("sys clock freq: {} Hz", rcc.clocks.sys_clk.0);
-    info!("core clock freq: {} Hz", rcc.clocks.core_clk.0);
+    info!("sys clock freq: {} Hz", rcc.clocks.sys_clk);
+    info!("core clock freq: {} Hz", rcc.clocks.core_clk);
 
-    loop {
+    // MAIN LOOP 
+    loop 
+    {
 
     }
 }
 
 /// Configures clocks. 
 #[inline]
-fn config_clks(rcc: stm32::RCC) -> rcc::Rcc
+fn config_clks(rcc: stm32::RCC, pwr: stm32::PWR) -> rcc::Rcc
 {
     // pll config 
     let mut pll_cfg = rcc::PllConfig::default();
@@ -47,9 +50,10 @@ fn config_clks(rcc: stm32::RCC) -> rcc::Rcc
     pll_cfg.p = Some(rcc::PllPDiv::DIV_2);
 
     // clock config object
-    let clk_cfg = rcc::Config::new(rcc::SysClockSrc::PLL);  
-    let clk_cfg = clk_cfg.pll_cfg(pll_cfg);             // apply pll config
+    let clk_cfg = rcc::Config::pll().pll_cfg(pll_cfg).boost(true);
+    let clk_cfg = clk_cfg.pll_cfg(pll_cfg);             
 
     // apply config
-    rcc.constrain().freeze(clk_cfg)
+    let pwr = pwr.constrain().vos(pwr::VoltageScale::Range1{ enable_boost: true }).freeze();
+    rcc.constrain().freeze(clk_cfg, pwr)
 }
